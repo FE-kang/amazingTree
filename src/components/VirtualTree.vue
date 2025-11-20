@@ -644,6 +644,7 @@ watch(activeId, (id) => {
             </span>
             <input
               v-if="showCheckbox"
+              class="vtree-checkbox"
               type="checkbox"
               :checked="isChecked(n.id)"
               :indeterminate="isIndeterminate(n.id)"
@@ -683,6 +684,15 @@ watch(activeId, (id) => {
   scrollbar-color: rgba(144, 147, 153, 0.3) transparent;
   cursor: pointer;
 
+  --vtree-primary: #409eff;
+  --vtree-checkbox-bg: #1d1d24;
+  --vtree-checkbox-border: #4c4d4f;
+  --vtree-checkbox-hover-border: #8d8e91;
+  --vtree-checkbox-disabled-bg: #2c2f33;
+  --vtree-checkbox-disabled-border: #5c5f63;
+  --vtree-checkbox-check: #ffffff;
+  --vtree-checkbox-check-disabled: #cfd3dc;
+
   &.is-dragging,
   &.is-dragging * {
     user-select: none;
@@ -694,6 +704,67 @@ watch(activeId, (id) => {
 
   input[type="checkbox"]:disabled {
     cursor: not-allowed;
+  }
+
+  .vtree-checkbox {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--vtree-checkbox-border);
+    background: var(--vtree-checkbox-bg);
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  .vtree-checkbox:not(:disabled):hover {
+    border-color: var(--vtree-checkbox-hover-border);
+  }
+  .vtree-checkbox:focus-visible {
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+  }
+  .vtree-checkbox:checked {
+    background: var(--vtree-primary);
+    border-color: var(--vtree-primary);
+  }
+  .vtree-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 0px;
+    width: 4px;
+    height: 8px;
+    border: 2px solid var(--vtree-checkbox-check);
+    border-top: 0;
+    border-left: 0;
+    transform: rotate(45deg);
+  }
+  .vtree-checkbox:indeterminate {
+    background: var(--vtree-primary);
+    border-color: var(--vtree-primary);
+  }
+  .vtree-checkbox:indeterminate::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 5px;
+    width: 10px;
+    height: 2px;
+    background: var(--vtree-checkbox-check);
+    border-radius: 1px;
+  }
+  .vtree-checkbox:disabled {
+    background: var(--vtree-checkbox-disabled-bg);
+    border-color: var(--vtree-checkbox-disabled-border);
+  }
+  .vtree-checkbox:disabled:checked::after {
+    border-color: var(--vtree-checkbox-check-disabled);
+  }
+  .vtree-checkbox:disabled:indeterminate::after {
+    background: var(--vtree-checkbox-check-disabled);
   }
 
   .vtree-row-wrapper {
