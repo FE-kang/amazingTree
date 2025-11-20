@@ -14,6 +14,7 @@ export default defineConfig(() => {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
+    publicDir: buildLib ? false : 'public',
     build: buildLib
       ? {
           lib: {
