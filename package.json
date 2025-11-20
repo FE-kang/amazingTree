@@ -54,6 +54,6 @@
   "sideEffects": [
     "dist/*.css"
   ],
-  "author": "maxkang",
+  "author": "Maxkang",
   "style": "./dist/amazing-tree.css"
 }
