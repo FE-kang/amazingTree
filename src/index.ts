@@ -1,1 +1,4 @@
-export { default as AmazingTree } from './components/AmazingTree.vue'
+import AmazingTree from './components/AmazingTree.vue'
+
+export default AmazingTree;
+export { AmazingTree };

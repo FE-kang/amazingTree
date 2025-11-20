@@ -1,6 +1,6 @@
 {
   "name": "amazing-tree",
-  "version": "1.2.0",
+  "version": "1.2.4",
   "private": false,
   "type": "module",
   "engines": {
@@ -47,8 +47,13 @@
     ".": {
       "import": "./dist/amazing-tree.es.js",
       "require": "./dist/amazing-tree.cjs.js"
-    }
+    },
+    "./style.css": "./dist/amazing-tree.css",
+    "./dist/*": "./dist/*"
   },
+  "sideEffects": [
+    "dist/*.css"
+  ],
   "author": "maxkang",
-  "style": "dist/amazing-tree.css"
+  "style": "./dist/amazing-tree.css"
 }

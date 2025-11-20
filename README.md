@@ -26,6 +26,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { AmazingTree } from 'amazing-tree'
+import 'amazing-tree/style.css'
 
 type NodeItem = { uuid: string; name: string; children?: NodeItem[]; [k: string]: unknown }
 const data = ref<NodeItem[]>([])
@@ -46,6 +47,8 @@ function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner
   />
 </template>
 ```
+
+> 使用时请显式导入样式：`import 'amazing-tree/style.css'`
 
 **Props**
 

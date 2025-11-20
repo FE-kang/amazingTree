@@ -553,16 +553,17 @@ watch(
   () => {
     if (props.defaultExpandAll) {
       expandedKeys.value = new Set(collectAllKeys(props.data || []))
-      visible.value = buildVisible(props.data || [])
-      nextTick(() => {
-        measureAndUpdate()
-        recomputeWindow()
-      })
     }
+    visible.value = buildVisible(props.data || [])
+    nextTick(() => {
+      measureAndUpdate()
+      recomputeWindow()
+    })
     const all = new Set(collectAllKeys(props.data || []))
     checkedKeys.value = new Set([...checkedKeys.value].filter((k) => all.has(k)))
     halfCheckedKeys.value = new Set([...halfCheckedKeys.value].filter((k) => all.has(k)))
   },
+  { deep: true },
 )
 
 function expandAncestors(id: Key) {
@@ -619,7 +620,7 @@ watch(activeId, (id) => {
 <template>
   <div
     ref="containerRef"
-    class="vtree"
+    class="amazing-tree"
     :class="{ 'is-dragging': dragging }"
     :style="{ height: typeof height === 'number' ? height + 'px' : height || '100%', '--vtree-bg': backgroundColor, '--vtree-text': textColor, '--vtree-hover': hoverColor }"
     @scroll="onScroll"
@@ -627,9 +628,9 @@ watch(activeId, (id) => {
     <template v-if="!isEmpty">
       <div :style="{ height: totalHeight + 'px', position: 'relative', minWidth: '100%', width: 'max-content' }">
         <div :style="{ height: topPadding + 'px' }"></div>
-        <div v-for="n in visible.slice(startIndex, endIndex)" :key="n.id" class="vtree-row-wrapper">
+        <div v-for="n in visible.slice(startIndex, endIndex)" :key="n.id" class="amazing-tree-row-wrapper">
           <div
-            class="vtree-row"
+            class="amazing-tree-row"
             :style="{ paddingLeft: (n.level * 16) + 'px', '--active-color': highlightColor }"
             :class="{ 'is-target-inner': dragging && dropTargetId === n.id && dropType === 'inner', 'is-active': activeId === n.id }"
             @mousedown="onRowMousedown(n, $event)"
@@ -638,15 +639,15 @@ watch(activeId, (id) => {
             :ref="(el) => setRowRef(n.id, el as HTMLElement)"
           >
             <span
-              class="vtree-caret-box"
+              class="amazing-tree-caret-box"
               :class="{ 'is-leaf': n.isLeaf }"
               @click.stop="!n.isLeaf && toggleExpand(n.id)"
             >
-              <span v-if="!n.isLeaf" class="vtree-caret" :class="{ expanded: isExpanded(n.id) }"></span>
+              <span v-if="!n.isLeaf" class="amazing-tree-caret" :class="{ expanded: isExpanded(n.id) }"></span>
             </span>
             <input
               v-if="showCheckbox"
-              class="vtree-checkbox"
+              class="amazing-tree-checkbox"
               type="checkbox"
               :checked="isChecked(n.id)"
               :indeterminate="isIndeterminate(n.id)"
@@ -654,29 +655,28 @@ watch(activeId, (id) => {
               @click.stop="onCheckClick(n, $event)"
             />
             <slot :node="n.node" :data="n.node" :level="n.level" :expanded="isExpanded(n.id)" :isLeaf="n.isLeaf">
-              <span class="vtree-label">{{ n.node[labelKey] }}</span>
+              <span class="amazing-tree-label">{{ n.node[labelKey] }}</span>
             </slot>
           </div>
           <div
             v-if="dragging && dropTargetId === n.id && (dropType === 'prev' || dropType === 'next')"
-            class="vtree-drop-line"
+            class="amazing-tree-drop-line"
             :class="{ 'is-prev': dropType === 'prev', 'is-next': dropType === 'next' }"
           ></div>
         </div>
         <div :style="{ height: bottomPadding + 'px' }"></div>
       </div>
-      <div v-if="dragging" class="vtree-ghost" :style="{ top: dragClientY + 'px' }"></div>
+      <div v-if="dragging" class="amazing-tree-ghost" :style="{ top: dragClientY + 'px' }"></div>
     </template>
-    <div v-else class="vtree-empty">
+    <div v-else class="amazing-tree-empty">
       <slot name="empty">
-        <div class="vtree-empty-inner">{{ emptyText }}</div>
+        <div class="amazing-tree-empty-inner">{{ emptyText }}</div>
       </slot>
     </div>
   </div>
 </template>
-
 <style scoped lang="scss">
-.vtree {
+.amazing-tree {
   width: 100%;
   overflow: auto;
   position: relative;
@@ -704,11 +704,11 @@ watch(activeId, (id) => {
     cursor: pointer;
   }
 
-  input[type="checkbox"]:disabled {
+  input[type='checkbox']:disabled {
     cursor: not-allowed;
   }
 
-  .vtree-checkbox {
+  .amazing-tree-checkbox {
     -webkit-appearance: none;
     appearance: none;
     position: relative;
@@ -718,21 +718,24 @@ watch(activeId, (id) => {
     background: var(--vtree-checkbox-bg);
     border-radius: 2px;
     outline: none;
-    transition: border-color 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+    transition:
+      border-color 0.12s ease,
+      background-color 0.12s ease,
+      box-shadow 0.12s ease;
     vertical-align: middle;
     margin-right: 6px;
   }
-  .vtree-checkbox:not(:disabled):hover {
+  .amazing-tree-checkbox:not(:disabled):hover {
     border-color: var(--vtree-checkbox-hover-border);
   }
-  .vtree-checkbox:focus-visible {
+  .amazing-tree-checkbox:focus-visible {
     box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
   }
-  .vtree-checkbox:checked {
+  .amazing-tree-checkbox:checked {
     background: var(--vtree-primary);
     border-color: var(--vtree-primary);
   }
-  .vtree-checkbox:checked::after {
+  .amazing-tree-checkbox:checked::after {
     content: '';
     position: absolute;
     left: 3px;
@@ -744,11 +747,11 @@ watch(activeId, (id) => {
     border-left: 0;
     transform: rotate(45deg);
   }
-  .vtree-checkbox:indeterminate {
+  .amazing-tree-checkbox:indeterminate {
     background: var(--vtree-primary);
     border-color: var(--vtree-primary);
   }
-  .vtree-checkbox:indeterminate::after {
+  .amazing-tree-checkbox:indeterminate::after {
     content: '';
     position: absolute;
     left: 2px;
@@ -758,21 +761,21 @@ watch(activeId, (id) => {
     background: var(--vtree-checkbox-check);
     border-radius: 1px;
   }
-  .vtree-checkbox:disabled {
+  .amazing-tree-checkbox:disabled {
     background: var(--vtree-checkbox-disabled-bg);
     border-color: var(--vtree-checkbox-disabled-border);
   }
-  .vtree-checkbox:disabled:checked::after {
+  .amazing-tree-checkbox:disabled:checked::after {
     border-color: var(--vtree-checkbox-check-disabled);
   }
-  .vtree-checkbox:disabled:indeterminate::after {
+  .amazing-tree-checkbox:disabled:indeterminate::after {
     background: var(--vtree-checkbox-check-disabled);
   }
 
-  .vtree-row-wrapper {
+  .amazing-tree-row-wrapper {
     position: relative;
 
-    .vtree-drop-line {
+    .amazing-tree-drop-line {
       position: absolute;
       left: 0;
       right: 0;
@@ -788,7 +791,7 @@ watch(activeId, (id) => {
     }
   }
 
-  .vtree-row {
+  .amazing-tree-row {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -813,7 +816,7 @@ watch(activeId, (id) => {
       outline: 2px dashed #409eff;
     }
 
-    .vtree-caret-box {
+    .amazing-tree-caret-box {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -828,7 +831,7 @@ watch(activeId, (id) => {
       }
     }
 
-    .vtree-caret {
+    .amazing-tree-caret {
       display: block;
       width: 0;
       height: 0;
@@ -843,12 +846,12 @@ watch(activeId, (id) => {
       }
     }
 
-    .vtree-label {
+    .amazing-tree-label {
       color: inherit;
     }
   }
 
-  .vtree-ghost {
+  .amazing-tree-ghost {
     position: fixed;
     left: 16px;
     width: 120px;
@@ -858,7 +861,7 @@ watch(activeId, (id) => {
     pointer-events: none;
   }
 
-  .vtree-empty {
+  .amazing-tree-empty {
     width: 100%;
     height: 100%;
     display: flex;
@@ -873,13 +876,13 @@ watch(activeId, (id) => {
       justify-content: center;
     }
 
-    .vtree-empty-inner {
+    .amazing-tree-empty-inner {
       color: var(--vtree-text);
     }
   }
 }
 
-:deep(.vtree) {
+:deep(.amazing-tree) {
   &::-webkit-scrollbar {
     width: 8px;
     height: 8px;

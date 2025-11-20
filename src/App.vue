@@ -48,6 +48,9 @@ onMounted(async () => {
     const resp = await fetch('/data.json')
     const json = await resp.json()
     data.value = Array.isArray(json) ? json : []
+    setTimeout(() => {
+      data.value[0]?.children?.shift()
+    }, 20000)
   } catch (e) {
     console.error('failed to load data.json', e)
   }
