@@ -57,6 +57,7 @@ const emit = defineEmits<{
   (e: 'node-contextmenu', node: T, ev: MouseEvent): void
   (e: 'node-drop', dragging: T, target: T, type: 'prev' | 'next' | 'inner'): void
   (e: 'current-change', node: T): void
+  (e: 'check-change', node: T, checked: boolean): void
 }>()
 
 const valueKey = computed<string>(() => props.props!.value || 'value')
@@ -161,6 +162,7 @@ function setCheckedKeys(keys: Key[]) {
 function onCheckClick(n: UnwrapRef<FlatNode>, ev: MouseEvent) {
   const el = ev.target as HTMLInputElement
   if (props.disabledChecked && props.disabledChecked(n.node as T)) return
+  emit('check-change', n.node as T, !!el.checked)
   setNodeChecked(n.id, !!el.checked)
 }
 

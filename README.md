@@ -74,6 +74,7 @@ function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner
 - `node-contextmenu(node: T, ev: MouseEvent)` 右键菜单
 - `node-drop(drag: T, target: T, type: 'prev'|'next'|'inner')` 拖拽放置
 - `current-change(node: T)` 当前行变化（配合 `currentNodeKey`）
+- `check-change(node: T, checked: boolean)` 勾选框点击时触发；禁用状态不触发
 
 **Slots**
 
