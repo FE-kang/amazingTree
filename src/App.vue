@@ -2,7 +2,7 @@
 import { onMounted, ref, useTemplateRef } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers';
 import { type NodeItem } from './types';
-import VirtualTree from './components/VirtualTree.vue'
+import AmazingTree from './components/AmazingTree.vue'
 
 const iconUrlMap: Record<string, string> = {
 	Program: "files/script/script.png",
@@ -74,7 +74,7 @@ const getObjectIcon = (node: NodeItem) => {
 	return iconUrlMap[node.type]
 }
 
-const treeRef = useTemplateRef<ComponentExposed<typeof VirtualTree>>("treeRef")
+const treeRef = useTemplateRef<ComponentExposed<typeof AmazingTree>>("treeRef")
 
 type NodeKeyType = string | number | null
 
@@ -127,7 +127,7 @@ const handleChange = (node: NodeItem) => {
   <div style="padding: 12px;">
     <div class="tree-wrapper" :style="{ width: boxW + 'px', height: boxH + 'px' }">
       <!-- @vue-generic {import('@/types').NodeItem} -->
-      <VirtualTree
+      <AmazingTree
         :data="data"
         :props="{ value: 'uuid', label: 'name', children: 'children' }"
         :current-node-key="initNodeKey"
@@ -168,7 +168,7 @@ const handleChange = (node: NodeItem) => {
             <span style="font-weight: 500;">无节点</span>
           </div>
         </template>
-      </VirtualTree>
+      </AmazingTree>
     </div>
     <div class="form-item">
       <button @click="getCurrNodeKey">获取当前节点ID：</button><span>{{ currentNodeKey }}</span>

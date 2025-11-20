@@ -25,7 +25,7 @@
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { VirtualTree } from 'amazing-tree'
+import { AmazingTree } from 'amazing-tree'
 
 type NodeItem = { uuid: string; name: string; children?: NodeItem[]; [k: string]: unknown }
 const data = ref<NodeItem[]>([])
@@ -36,7 +36,7 @@ function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner
 </script>
 
 <template>
-  <VirtualTree
+  <AmazingTree
     :data="data"
     :props="{ value: 'uuid', label: 'name', children: 'children' }"
     :show-checkbox="true"
