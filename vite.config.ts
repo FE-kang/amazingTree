@@ -19,8 +19,8 @@ export default defineConfig(() => {
       ? {
           lib: {
             entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
-            name: 'VirtualTree',
-            fileName: (format) => `virtual-tree.${format}.js`,
+            name: 'AmazingTree',
+            fileName: (format) => `amazing-tree.${format}.js`,
             formats: ['es', 'cjs', 'umd'],
           },
           rollupOptions: {

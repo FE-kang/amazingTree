@@ -92,7 +92,7 @@ function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner
 - 开发：`npm run dev`
 - 类型检查：`npm run type-check`
 - 构建应用：`npm run build`
-- 构建库：`npm run build:lib`（生成 `dist/virtual-tree.es.js`、`virtual-tree.cjs`、`virtual-tree.umd.js`）
+- 构建库：`npm run build:lib`（生成 `dist/amazing-tree.es.js`、`amazing-tree.cjs.js`、`amazing-tree.umd.js`）
 - 发布到 npm：在确认 `package.json` 中 `name`、`version`、`files`、`exports` 配置正确后执行 `npm publish`
 
 **注意事项**

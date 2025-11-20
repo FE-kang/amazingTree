@@ -46,8 +46,8 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/virtual-tree.es.js",
-      "require": "./dist/virtual-tree.cjs.js"
+      "import": "./dist/amazing-tree.es.js",
+      "require": "./dist/amazing-tree.cjs.js"
     }
   }
 }
