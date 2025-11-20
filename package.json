@@ -49,5 +49,6 @@
       "require": "./dist/amazing-tree.cjs.js"
     }
   },
-  "author": "maxkang"
+  "author": "maxkang",
+  "style": "dist/amazing-tree.css"
 }

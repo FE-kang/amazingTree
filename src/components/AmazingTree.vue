@@ -794,7 +794,7 @@ watch(activeId, (id) => {
     gap: 4px;
     box-sizing: border-box;
     min-height: 24px;
-    padding: 2px 8px;
+    padding: 0 8px;
     white-space: nowrap;
 
     &:hover {
