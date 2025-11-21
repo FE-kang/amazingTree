@@ -42,6 +42,7 @@ const iconUrlMap: Record<string, string> = {
 const data = ref<NodeItem[]>([])
 const boxW = ref(300)
 const boxH = ref(600)
+const filterName = ref("")
 
 onMounted(async () => {
   try {
@@ -124,10 +125,21 @@ const allowDrop = (dragNode: NodeItem, dropNode: NodeItem, type: 'prev' | 'next'
 const handleChange = (node: NodeItem) => {
   console.log("节点变化", node);
 }
+
+const filterNode = () => {
+  treeRef.value?.filter(filterName.value)
+}
+
+const filterMethod = (value: any, node: NodeItem) => {
+  return node.name.includes(value)
+}
 </script>
 
 <template>
   <div style="padding: 12px;">
+    <div class="form-item">
+      <input type="text" v-model="filterName" style="flex: 1;" @input="filterNode" /><button @click="filterNode">筛选节点</button>
+    </div>
     <div class="tree-wrapper" :style="{ width: boxW + 'px', height: boxH + 'px' }">
       <!-- @vue-generic {import('@/types').NodeItem} -->
       <AmazingTree
@@ -141,6 +153,7 @@ const handleChange = (node: NodeItem) => {
         :show-checkbox="true"
         :check-strictly="true"
         :disabled-checked="() => true"
+        :filter-node-method="filterMethod"
         empty-text="没有余粮"
         height="100%"
         @node-click="onClick"
@@ -209,6 +222,7 @@ const handleChange = (node: NodeItem) => {
   display: flex;
   width: 500px;
   margin: 0 auto;
-  margin-top: 10px;  
+  margin-top: 10px;
+  margin-bottom: 10px;  
 }
 </style>

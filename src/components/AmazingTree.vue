@@ -32,6 +32,7 @@ interface Props {
   checkStrictly?: boolean
   defaultCheckedKeys?: Key[]
   disabledChecked?: (node: T) => boolean
+  filterNodeMethod?: (value: unknown, node: T) => boolean
 }
 
 const props = withDefaults(
@@ -77,6 +78,7 @@ type FlatNode = {
 const expandedKeys = ref<Set<Key>>(new Set())
 const checkedKeys = ref<Set<Key>>(new Set())
 const halfCheckedKeys = ref<Set<Key>>(new Set())
+const filterQuery = ref<unknown>(null)
 
 function isExpanded(id: Key) {
   return expandedKeys.value.has(id)
@@ -181,6 +183,22 @@ function buildVisible(list: T[]): FlatNode[] {
     }
   }
   walk(list, null, 0)
+  if (props.filterNodeMethod && filterQuery.value != null) {
+    const match = new Set<Key>()
+    const anc = new Set<Key>()
+    function dfs(n: T): boolean {
+      const id = getId(n)
+      const ch = getChildren(n)
+      let childHas = false
+      for (const c of ch) childHas = dfs(c) || childHas
+      const selfHas = !!props.filterNodeMethod!(filterQuery.value, n)
+      if (selfHas) match.add(id)
+      if (childHas) anc.add(id)
+      return selfHas || childHas
+    }
+    for (const r of list) dfs(r)
+    return out.filter((f) => match.has(f.id) || anc.has(f.id))
+  }
   return out
 }
 
@@ -609,6 +627,15 @@ defineExpose({
   getCheckedKeys: () => Array.from(checkedKeys.value),
   setCheckedKeys,
   setChecked: (id: Key, checked: boolean) => setNodeChecked(id, checked),
+  filter: (value: unknown) => {
+    filterQuery.value = value
+    expandedKeys.value = new Set(collectAllKeys(props.data || []))
+    visible.value = buildVisible(props.data || [])
+    nextTick(() => {
+      measureAndUpdate()
+      recomputeWindow()
+    })
+  },
 })
 
 watch(activeId, (id) => {
