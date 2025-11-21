@@ -1,24 +1,27 @@
 # AmazingTree (Vue 3)
 
-> :warning:该组件因设计需求，是非受控组件，组件的拖拽功能会修改树形数据 `props.data`
-> 使用需谨慎
-
 一个高性能、可拖拽、可选择的虚拟滚动树组件，支持泛型类型自动推导，适合在大型数据集下渲染与交互。
+
+> :warning:该组件因设计需求，是非受控组件，组件的拖拽功能会修改树形数据 `props.data`，使用需谨慎
 
 **特性**
 
-- 虚拟滚动渲染，平滑滚动与自动测量行高
+- 虚拟滚动渲染，平滑滚动与自动测量行高（20w节点无压力）
 - 可选中（复选框），支持父子联动或严格模式
+- 可筛选，可快速定位节点
 - 拖拽换位与嵌套，提供前置、后置、内部三种放置方式
-- 泛型组件：从 `data` 推导节点业务类型 `T`，事件与插槽类型随之推导
+- 支持自定义内容（节点插槽和空数据占位插槽）
+- 支持自定义拖拽/释放禁用逻辑
 - 轻量依赖，仅依赖 `vue`
 
 **安装**
 
-- 待发布到 npm 后：`npm i amazing-tree`
-- 当前仓库本地打包：`npm run build:lib`，产物在 `dist/`
+- `npm i amazing-tree`
 
 **使用**
+
+> 导入组件 `import { AmazingTree } from 'amazing-tree'`
+> 导入样式：`import 'amazing-tree/style.css'`
 
 - 基本示例
 
@@ -48,72 +51,53 @@ function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner
 </template>
 ```
 
-> 使用时请显式导入样式：`import 'amazing-tree/style.css'`
-
 **Props**
 
-- `data: T[]` 树数据源
-- `props?: { value: string; label: string; children: string }` 字段映射，默认 `{ value:'value', label:'label', children:'children' }`
-- `allowDrag?: (node: T) => boolean` 是否允许拖拽某节点
-- `allowDrop?: (drag: T, drop: T, type: 'prev'|'next'|'inner') => boolean` 是否允许目标位置
-- `height?: number | string` 容器高度，默认 `100%`
-- `highlightColor?: string` 选中行高亮色，默认 `#1e71ff`
-- `backgroundColor?: string` 背景色，默认 `#1d1d24`
-- `textColor?: string` 文本色，默认 `#c8d3de`
-- `hoverColor?: string` 悬浮色，默认 `#5d90e5`
-- `currentNodeKey?: Key` 当前行的 `value`
-- `defaultExpandedKeys?: Key[]` 默认展开的节点 `value` 列表
-- `defaultExpandAll?: boolean` 是否默认全部展开
-- `draggable?: boolean` 是否允许拖拽，默认 `false`
-- `emptyText?: string` 空状态文案，默认 `暂无数据`
-- `showCheckbox?: boolean` 是否显示复选框，默认 `false`
-- `checkStrictly?: boolean` 选择严格模式，父子不联动，默认 `false`
-- `defaultCheckedKeys?: Key[]` 默认勾选的 `value` 列表，默认 `[]`
-- `disabledChecked?: (node: T) => boolean` 是否禁用当前节点复选框，默认 `false`
+| 属性名                | 说明                        | 类型                                                           | 默认值                                                  | 是否可选 |
+| --------------------- | --------------------------- | -------------------------------------------------------------- | ------------------------------------------------------- | -------- |
+| `data`                | 树数据源                    | `T[]`                                                          | —                                                       | 否       |
+| `props`               | 字段映射                    | `{ value: string; label: string; children: string }`           | `{ value:'value', label:'label', children:'children' }` | 是       |
+| `allowDrag`           | 是否允许拖拽某节点          | `(node: T) => boolean`                                         | —                                                       | 是       |
+| `allowDrop`           | 是否允许目标位置            | `(drag: T, drop: T, type: 'prev'\|'next'\|'inner') => boolean` | —                                                       | 是       |
+| `height`              | 容器高度                    | `number \| string`                                             | `'100%'`                                                | 是       |
+| `highlightColor`      | 选中行高亮色                | `string`                                                       | `'#1e71ff'`                                             | 是       |
+| `backgroundColor`     | 背景色                      | `string`                                                       | `'#1d1d24'`                                             | 是       |
+| `textColor`           | 文本色                      | `string`                                                       | `'#c8d3de'`                                             | 是       |
+| `hoverColor`          | 悬浮色                      | `string`                                                       | `'#5d90e5'`                                             | 是       |
+| `currentNodeKey`      | 当前行的 `value`            | `Key`                                                          | —                                                       | 是       |
+| `defaultExpandedKeys` | 默认展开的节点 `value` 列表 | `Key[]`                                                        | —                                                       | 是       |
+| `defaultExpandAll`    | 是否默认全部展开            | `boolean`                                                      | —                                                       | 是       |
+| `draggable`           | 是否允许拖拽                | `boolean`                                                      | `false`                                                 | 是       |
+| `emptyText`           | 空状态文案                  | `string`                                                       | `'暂无数据'`                                            | 是       |
+| `showCheckbox`        | 是否显示复选框              | `boolean`                                                      | `false`                                                 | 是       |
+| `checkStrictly`       | 选择严格模式，父子不联动    | `boolean`                                                      | `false`                                                 | 是       |
+| `defaultCheckedKeys`  | 默认勾选的 `value` 列表     | `Key[]`                                                        | `[]`                                                    | 是       |
+| `disabledChecked`     | 是否禁用当前节点复选框      | `(node: T) => boolean`                                         | —                                                       | 是       |
 
 **Events**
 
-- `node-click(node: T, ev: MouseEvent)` 点击行
-- `node-contextmenu(node: T, ev: MouseEvent)` 右键菜单
-- `node-drop(drag: T, target: T, type: 'prev'|'next'|'inner')` 拖拽放置
-- `current-change(node: T)` 当前行变化（配合 `currentNodeKey`）
-- `check-change(node: T, checked: boolean)` 勾选框点击时触发；禁用状态不触发
+| 事件名             | 说明                                | 回调参数                                                  |
+| ------------------ | ----------------------------------- | --------------------------------------------------------- |
+| `node-click`       | 点击行                              | `(node: T, ev: MouseEvent)`                               |
+| `node-contextmenu` | 右键菜单                            | `(node: T, ev: MouseEvent)`                               |
+| `node-drop`        | 拖拽放置                            | `(drag: T, target: T, type: 'prev' \| 'next' \| 'inner')` |
+| `current-change`   | 当前行变化（配合 `currentNodeKey`） | `(node: T)`                                               |
+| `check-change`     | 勾选框点击时触发；禁用状态不触发    | `(node: T, checked: boolean)`                             |
 
 **Slots**
 
-- `default`：`{ node: T; data: T; level: number; expanded: boolean; isLeaf: boolean }`
-- `empty`：空状态自定义
+| 插槽名    | 插槽参数                                                                  |
+| --------- | ------------------------------------------------------------------------- |
+| `default` | `{ node: T; data: T; level: number; expanded: boolean; isLeaf: boolean }` |
+| `empty`   | —（空状态自定义）                                                         |
 
-**Expose API**
+**Exposes**
 
-- `getCurrentKey(): Key | null` 获取当前行 `value`
-- `setCurrentKey(id: Key | null): void` 设置当前行并滚动可见
-- `scrollTo(id: Key | null): void` 滚动到指定行（自动展开祖先）
-- `getCheckedKeys(): Key[]` 获取当前勾选集合
-- `setCheckedKeys(keys: Key[]): void` 批量设置勾选（应用联动/严格逻辑）
-- `setChecked(id: Key, checked: boolean): void` 设置单个节点勾选状态
-
-**类型与泛型**
-
-- 组件声明为泛型：`generic="T extends Record<string, unknown>"`
-- `T` 会从 `data: T[]` 自动推导，事件与插槽参数均按 `T` 类型约束
-- 在模板中若需要强类型事件回调，可在脚本中声明具体 `T`（例如 `NodeItem`）并书写对应函数签名
-
-**样式**
-
-- 复选框遵循暗色主题风格，支持禁用态 `cursor:not-allowed`，可通过 CSS 变量定制：
-  - `--vtree-primary` 主色（默认 `#409eff`）
-  - `--vtree-checkbox-*` 系列变量控制背景、边框、禁用与勾选颜色
-
-**构建与发布**
-
-- 开发：`npm run dev`
-- 类型检查：`npm run type-check`
-- 构建应用：`npm run build`
-- 构建库：`npm run build:lib`（生成 `dist/amazing-tree.es.js`、`amazing-tree.cjs.js`、`amazing-tree.umd.js`）
-- 发布到 npm：在确认 `package.json` 中 `name`、`version`、`files`、`exports` 配置正确后执行 `npm publish`
-
-**注意事项**
-
-- 库构建将 `vue` 作为外部依赖，使用方需自行安装 `vue@^3.5`
-- 若需要声明文件（`.d.ts`），可引入 `vite-plugin-dts` 或单独生成并随包发布
+| 方法名           | 说明                              | 返回类型                              |
+| ---------------- | --------------------------------- | ------------------------------------- |
+| `getCurrentKey`  | 获取当前行 `value`                | `Key \| null`                         |
+| `setCurrentKey`  | 设置当前行并滚动可见              | `(id: Key \| null) => void`           |
+| `scrollTo`       | 滚动到指定行（自动展开祖先）      | `(id: Key \| null) => void`           |
+| `getCheckedKeys` | 获取当前勾选集合                  | `Key[]`                               |
+| `setCheckedKeys` | 批量设置勾选（应用联动/严格逻辑） | `(keys: Key[]) => void`               |
+| `setChecked`     | 设置单个节点勾选状态              | `(id: Key, checked: boolean) => void` |
