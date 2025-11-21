@@ -33,6 +33,12 @@ import 'amazing-tree/style.css'
 
 type NodeItem = { uuid: string; name: string; children?: NodeItem[]; [k: string]: unknown }
 const data = ref<NodeItem[]>([])
+const filterName = ref('')
+const filterNodeMethod = (q: unknown, node: NodeItem) => {
+  const s = String(q || '')
+  if (!s) return true
+  return node.name.includes(s)
+}
 
 function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner') {
   console.log(drag, target, type)
@@ -43,11 +49,14 @@ function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner
   <AmazingTree
     :data="data"
     :props="{ value: 'uuid', label: 'name', children: 'children' }"
+    :filter-node-method="filterNodeMethod"
     :show-checkbox="true"
     :check-strictly="false"
     :default-checked-keys="['id-1', 'id-2']"
     @node-drop="onDrop"
   />
+  <input v-model="filterName" placeholder="输入名称筛选" />
+  <button @click="$refs.tree?.filter(filterName)">筛选</button>
 </template>
 ```
 
@@ -73,6 +82,7 @@ function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner
 | `checkStrictly`       | 选择严格模式，父子不联动    | `boolean`                                                      | `false`                                                 | 是       |
 | `defaultCheckedKeys`  | 默认勾选的 `value` 列表     | `Key[]`                                                        | `[]`                                                    | 是       |
 | `disabledChecked`     | 是否禁用当前节点复选框      | `(node: T) => boolean`                                         | —                                                       | 是       |
+| `filterNodeMethod`    | 过滤方法（返回 false 隐藏） | `(value: unknown, node: T) => boolean`                         | —                                                       | 是       |
 
 **Events**
 
@@ -101,3 +111,4 @@ function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner
 | `getCheckedKeys` | 获取当前勾选集合                  | `Key[]`                               |
 | `setCheckedKeys` | 批量设置勾选（应用联动/严格逻辑） | `(keys: Key[]) => void`               |
 | `setChecked`     | 设置单个节点勾选状态              | `(id: Key, checked: boolean) => void` |
+| `filter`         | 触发过滤，参数作为回调第 1 个参数 | `(value: unknown) => void`            |
