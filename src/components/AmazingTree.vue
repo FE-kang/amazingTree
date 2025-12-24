@@ -19,6 +19,11 @@ interface Props {
   allowDrag?: AllowDragFn
   allowDrop?: AllowDropFn
   height?: number | string
+  rowHeight?: number | string
+  dropLineColor?: string
+  innerDashColor?: string
+  siblingZoneRatio?: number
+  dragStartThreshold?: number
   highlightColor?: string
   backgroundColor?: string
   textColor?: string
@@ -40,6 +45,11 @@ const props = withDefaults(
   {
     props: () => ({ value: 'value', label: 'label', children: 'children' }),
     height: undefined,
+    rowHeight: 32,
+    dropLineColor: '#ffd400',
+    innerDashColor: '#ffd400',
+    siblingZoneRatio: 0.35,
+    dragStartThreshold: 4,
     highlightColor: '#1e71ff',
     backgroundColor: '#1d1d24',
     textColor: '#c8d3de',
@@ -207,7 +217,15 @@ const scrollTop = ref(0)
 const viewportHeight = ref(0)
 const visible = ref<FlatNode[]>([])
 const sizes = reactive<Map<Key, number>>(new Map())
-const defaultSize = 28
+function parseRowHeight(h: number | string | undefined) {
+  if (typeof h === 'number') return h
+  if (typeof h === 'string') {
+    const m = h.match(/(\d+(\.\d+)?)/)
+    return m ? Number(m[1]) : 32
+  }
+  return 32
+}
+const defaultSize = parseRowHeight(props.rowHeight)
 
 const cumulative = computed<number[]>(() => {
   let sum = 0
@@ -339,6 +357,9 @@ const dragId = ref<Key | null>(null)
 const dropTargetId = ref<Key | null>(null)
 const dropType = ref<'prev' | 'next' | 'inner' | null>(null)
 const dragClientY = ref(0)
+const dragStarted = ref(false)
+const dragStartX = ref(0)
+const dragStartY = ref(0)
 const activeId = ref<Key | null>(null)
 const autoScrollDir = ref<-1 | 0 | 1>(0)
 let autoScrollRaf: number | null = null
@@ -389,16 +410,26 @@ function onRowMousedown(n: UnwrapRef<FlatNode>, ev: MouseEvent) {
   if (ev.button !== 0) return
   const can = props.allowDrag ? !!props.allowDrag(n.node as T) : true
   if (!can) return
-  dragging.value = true
   dragId.value = n.id
   dragClientY.value = ev.clientY
+  dragStartX.value = ev.clientX
+  dragStartY.value = ev.clientY
+  dragStarted.value = false
   ev.preventDefault()
   window.addEventListener('mousemove', onMouseMove)
   window.addEventListener('mouseup', onMouseUp)
 }
 
 function onMouseMove(ev: MouseEvent) {
-  if (!dragging.value) return
+  if (dragId.value == null) return
+  if (!dragStarted.value) {
+    const dx = Math.abs(ev.clientX - dragStartX.value)
+    const dy = Math.abs(ev.clientY - dragStartY.value)
+    const threshold = Math.max(1, props.dragStartThreshold ?? 4)
+    if (dx < threshold && dy < threshold) return
+    dragStarted.value = true
+    dragging.value = true
+  }
   dragClientY.value = ev.clientY
   const idx = pointerToIndex(ev.clientY)
   const target = visible.value[Math.min(Math.max(idx, 0), visible.value.length - 1)]
@@ -413,9 +444,11 @@ function onMouseMove(ev: MouseEvent) {
   const rect = containerRef.value!.getBoundingClientRect()
   const localY = ev.clientY - rect.top + scrollTop.value - top
   const r = localY / h
+  const ratioRaw = props.siblingZoneRatio ?? 0.35
+  const ratio = Math.max(0.05, Math.min(0.49, ratioRaw))
   let t: 'prev' | 'next' | 'inner' = 'inner'
-  if (r < 0.25) t = 'prev'
-  else if (r > 0.75) t = 'next'
+  if (r < ratio) t = 'prev'
+  else if (r > 1 - ratio) t = 'next'
   const dragFlat = findFlatById(dragId.value)
   const allowed = props.allowDrop ? !!(dragFlat && props.allowDrop(dragFlat.node as T, target.node as T, t)) : true
   dropType.value = allowed ? t : null
@@ -470,7 +503,7 @@ function removeFromSource(drag: UnwrapRef<FlatNode>) {
 function insertToTarget(dragNode: T, target: UnwrapRef<FlatNode>, type: 'prev' | 'next' | 'inner') {
   if (type === 'inner') {
     if (!Array.isArray((target.node as any)[childrenKey.value])) (target.node as any)[childrenKey.value] = [] as T[]
-    ;((target.node as any)[childrenKey.value] as T[]).push(dragNode)
+      ; ((target.node as any)[childrenKey.value] as T[]).push(dragNode)
     expandedKeys.value.add(target.id)
     return
   }
@@ -489,11 +522,18 @@ function onMouseUp() {
   window.removeEventListener('mousemove', onMouseMove)
   window.removeEventListener('mouseup', onMouseUp)
   cancelAutoScroll()
-  if (!dragging.value) return
+  if (!dragging.value) {
+    dragId.value = null
+    dropType.value = null
+    dropTargetId.value = null
+    dragStarted.value = false
+    return
+  }
   const dragFlat = findFlatById(dragId.value)
   const targetFlat = findFlatById(dropTargetId.value)
   const t = dropType.value
   dragging.value = false
+  dragStarted.value = false
   dropType.value = null
   dropTargetId.value = null
   if (!dragFlat || !targetFlat || !t) return
@@ -523,6 +563,7 @@ function onRowClick(n: UnwrapRef<FlatNode>, ev: MouseEvent) {
   emit('node-click', n.node as T, ev)
 }
 function onRowContext(n: UnwrapRef<FlatNode>, ev: MouseEvent) {
+  activeId.value = n.id
   emit('node-contextmenu', n.node as T, ev)
 }
 
@@ -645,51 +686,33 @@ watch(activeId, (id) => {
 </script>
 
 <template>
-  <div
-    ref="containerRef"
-    class="amazing-tree"
-    :class="{ 'is-dragging': dragging }"
-    :style="{ height: typeof height === 'number' ? height + 'px' : height || '100%', '--vtree-bg': backgroundColor, '--vtree-text': textColor, '--vtree-hover': hoverColor }"
-    @scroll="onScroll"
-  >
+  <div ref="containerRef" class="amazing-tree" :class="{ 'is-dragging': dragging }"
+    :style="{ height: typeof height === 'number' ? height + 'px' : height || '100%', '--vtree-bg': backgroundColor, '--vtree-text': textColor, '--vtree-hover': hoverColor, '--vtree-row-height': typeof rowHeight === 'number' ? rowHeight + 'px' : rowHeight || '32px', '--vtree-drop-line': dropLineColor, '--vtree-drop-inner': innerDashColor }"
+    @scroll="onScroll">
     <template v-if="!isEmpty">
       <div :style="{ height: totalHeight + 'px', position: 'relative', minWidth: '100%', width: 'max-content' }">
         <div :style="{ height: topPadding + 'px' }"></div>
         <div v-for="n in visible.slice(startIndex, endIndex)" :key="n.id" class="amazing-tree-row-wrapper">
-          <div
-            class="amazing-tree-row"
+          <div class="amazing-tree-row"
             :style="{ paddingLeft: (n.level * 16) + 'px', '--active-color': highlightColor }"
             :class="{ 'is-target-inner': dragging && dropTargetId === n.id && dropType === 'inner', 'is-active': activeId === n.id }"
-            @mousedown="onRowMousedown(n, $event)"
-            @click="onRowClick(n, $event)"
-            @contextmenu.prevent="onRowContext(n, $event)"
-            :ref="(el) => setRowRef(n.id, el as HTMLElement)"
-          >
-            <span
-              class="amazing-tree-caret-box"
-              :class="{ 'is-leaf': n.isLeaf }"
-              @click.stop="!n.isLeaf && toggleExpand(n.id)"
-            >
+            @mousedown="onRowMousedown(n, $event)" @click="onRowClick(n, $event)"
+            @contextmenu.prevent="onRowContext(n, $event)" :ref="(el) => setRowRef(n.id, el as HTMLElement)">
+            <span class="amazing-tree-caret-box" :class="{ 'is-leaf': n.isLeaf }" @mousedown.stop
+              @click.stop="!n.isLeaf && toggleExpand(n.id)">
               <span v-if="!n.isLeaf" class="amazing-tree-caret" :class="{ expanded: isExpanded(n.id) }"></span>
             </span>
-            <input
-              v-if="showCheckbox"
-              class="amazing-tree-checkbox"
-              type="checkbox"
-              :checked="isChecked(n.id)"
-              :indeterminate="isIndeterminate(n.id)"
+            <input v-if="showCheckbox" class="amazing-tree-checkbox" type="checkbox" :checked="isChecked(n.id)"
+              @mousedown.stop :indeterminate="isIndeterminate(n.id)"
               :disabled="props.disabledChecked ? props.disabledChecked(n.node as T) : false"
-              @click.stop="onCheckClick(n, $event)"
-            />
+              @click.stop="onCheckClick(n, $event)" />
             <slot :node="n.node" :data="n.node" :level="n.level" :expanded="isExpanded(n.id)" :isLeaf="n.isLeaf">
               <span class="amazing-tree-label">{{ n.node[labelKey] }}</span>
             </slot>
           </div>
-          <div
-            v-if="dragging && dropTargetId === n.id && (dropType === 'prev' || dropType === 'next')"
-            class="amazing-tree-drop-line"
-            :class="{ 'is-prev': dropType === 'prev', 'is-next': dropType === 'next' }"
-          ></div>
+          <div v-if="dragging && dropTargetId === n.id && (dropType === 'prev' || dropType === 'next')"
+            class="amazing-tree-drop-line" :class="{ 'is-prev': dropType === 'prev', 'is-next': dropType === 'next' }">
+          </div>
         </div>
         <div :style="{ height: bottomPadding + 'px' }"></div>
       </div>
@@ -752,16 +775,20 @@ watch(activeId, (id) => {
     vertical-align: middle;
     margin-right: 6px;
   }
+
   .amazing-tree-checkbox:not(:disabled):hover {
     border-color: var(--vtree-checkbox-hover-border);
   }
+
   .amazing-tree-checkbox:focus-visible {
     box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
   }
+
   .amazing-tree-checkbox:checked {
     background: var(--vtree-primary);
     border-color: var(--vtree-primary);
   }
+
   .amazing-tree-checkbox:checked::after {
     content: '';
     position: absolute;
@@ -774,10 +801,12 @@ watch(activeId, (id) => {
     border-left: 0;
     transform: rotate(45deg);
   }
+
   .amazing-tree-checkbox:indeterminate {
     background: var(--vtree-primary);
     border-color: var(--vtree-primary);
   }
+
   .amazing-tree-checkbox:indeterminate::after {
     content: '';
     position: absolute;
@@ -788,13 +817,16 @@ watch(activeId, (id) => {
     background: var(--vtree-checkbox-check);
     border-radius: 1px;
   }
+
   .amazing-tree-checkbox:disabled {
     background: var(--vtree-checkbox-disabled-bg);
     border-color: var(--vtree-checkbox-disabled-border);
   }
+
   .amazing-tree-checkbox:disabled:checked::after {
     border-color: var(--vtree-checkbox-check-disabled);
   }
+
   .amazing-tree-checkbox:disabled:indeterminate::after {
     background: var(--vtree-checkbox-check-disabled);
   }
@@ -807,11 +839,12 @@ watch(activeId, (id) => {
       left: 0;
       right: 0;
       height: 0;
-      border-top: 2px solid #409eff;
+      border-top: 2px solid var(--vtree-drop-line, #ffd400);
 
       &.is-prev {
         top: 0;
       }
+
       &.is-next {
         bottom: 0;
       }
@@ -823,7 +856,9 @@ watch(activeId, (id) => {
     align-items: center;
     gap: 4px;
     box-sizing: border-box;
-    min-height: 24px;
+    position: relative;
+    min-height: var(--vtree-row-height, 32px);
+    line-height: var(--vtree-row-height, 32px);
     padding: 0 8px;
     white-space: nowrap;
 
@@ -839,8 +874,23 @@ watch(activeId, (id) => {
       }
     }
 
-    &.is-target-inner {
-      outline: 2px dashed #409eff;
+    &.is-target-inner::before,
+    &.is-target-inner::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+    }
+
+    &.is-target-inner::before {
+      top: 0;
+      border-top: 2px dashed var(--vtree-drop-inner, #ffd400);
+    }
+
+    &.is-target-inner::after {
+      bottom: 0;
+      border-bottom: 2px dashed var(--vtree-drop-inner, #ffd400);
     }
 
     .amazing-tree-caret-box {
@@ -882,7 +932,7 @@ watch(activeId, (id) => {
     position: fixed;
     left: 16px;
     width: 120px;
-    height: 24px;
+    height: var(--vtree-row-height, 32px);
     background: rgba(64, 158, 255, 0.2);
     border: 1px solid #409eff;
     pointer-events: none;
@@ -895,7 +945,7 @@ watch(activeId, (id) => {
     align-items: center;
     justify-content: center;
 
-    > * {
+    >* {
       width: 100%;
       height: 100%;
       display: flex;
@@ -914,13 +964,16 @@ watch(activeId, (id) => {
     width: 8px;
     height: 8px;
   }
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
+
   &::-webkit-scrollbar-thumb {
     background-color: rgba(144, 147, 153, 0.3);
     border-radius: 4px;
   }
+
   &::-webkit-scrollbar-thumb:hover {
     background-color: rgba(144, 147, 153, 0.5);
   }

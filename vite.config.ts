@@ -14,22 +14,25 @@ export default defineConfig(() => {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
+    server: {
+      host: '0.0.0.0',
+    },
     publicDir: buildLib ? false : 'public',
     build: buildLib
       ? {
-          lib: {
-            entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
-            name: 'AmazingTree',
-            fileName: (format) => `amazing-tree.${format}.js`,
-            formats: ['es', 'cjs', 'umd'],
+        lib: {
+          entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
+          name: 'AmazingTree',
+          fileName: (format) => `amazing-tree.${format}.js`,
+          formats: ['es', 'cjs', 'umd'],
+        },
+        rollupOptions: {
+          external: ['vue'],
+          output: {
+            globals: { vue: 'Vue' },
           },
-          rollupOptions: {
-            external: ['vue'],
-            output: {
-              globals: { vue: 'Vue' },
-            },
-          },
-        }
+        },
+      }
       : undefined,
   }
 })
