@@ -92,7 +92,7 @@ const checkedKeys = ref<Set<Key>>(new Set())
 const halfCheckedKeys = ref<Set<Key>>(new Set())
 const filterQuery = ref<unknown>(null)
 
-function isExpandedNode(n: FlatNode) {
+function isExpandedNode(n: UnwrapRef<FlatNode>) {
   return expandedInstKeys.value.has(n.rid) || expandedBizKeys.value.has(n.id)
 }
 function toggleExpandRid(rid: string) {
