@@ -681,8 +681,20 @@ defineExpose({
   setCheckedKeys,
   setChecked: (id: Key, checked: boolean) => setNodeChecked(id, checked),
   filter: (value: unknown) => {
-    filterQuery.value = value
-    expandedBizKeys.value = new Set(collectAllKeys(props.data || []))
+    const isCleared = value == null || (typeof value === 'string' && value.trim() === '')
+    if (!isCleared && props.filterNodeMethod) {
+      filterQuery.value = value
+      expandedBizKeys.value = new Set(collectAllKeys(props.data || []))
+    } else {
+      filterQuery.value = null
+      if (props.defaultExpandAll) {
+        expandedBizKeys.value = new Set(collectAllKeys(props.data || []))
+      } else if (props.defaultExpandedKeys && props.defaultExpandedKeys.length) {
+        expandedBizKeys.value = new Set(props.defaultExpandedKeys)
+      } else {
+        expandedBizKeys.value = new Set()
+      }
+    }
     visible.value = buildVisible(props.data || [])
     nextTick(() => {
       measureAndUpdate()
