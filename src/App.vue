@@ -205,6 +205,9 @@ const filterMethod = (value: any, node: NodeItem) => {
     width: 26px;
     height: 26px;
     padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     .icon-image {
       width: 100%;
