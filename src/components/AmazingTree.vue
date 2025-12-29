@@ -77,6 +77,7 @@ const childrenKey = computed<string>(() => props.props!.children || 'children')
 const isEmpty = computed<boolean>(() => Array.isArray(props.data) ? props.data.length === 0 : true)
 
 type FlatNode = {
+  rid: string
   id: Key
   node: T
   parent: T | null
@@ -85,17 +86,18 @@ type FlatNode = {
   isLeaf: boolean
 }
 
-const expandedKeys = ref<Set<Key>>(new Set())
+const expandedInstKeys = ref<Set<string>>(new Set())
+const expandedBizKeys = ref<Set<Key>>(new Set())
 const checkedKeys = ref<Set<Key>>(new Set())
 const halfCheckedKeys = ref<Set<Key>>(new Set())
 const filterQuery = ref<unknown>(null)
 
-function isExpanded(id: Key) {
-  return expandedKeys.value.has(id)
+function isExpandedNode(n: FlatNode) {
+  return expandedInstKeys.value.has(n.rid) || expandedBizKeys.value.has(n.id)
 }
-function toggleExpand(id: Key) {
-  if (expandedKeys.value.has(id)) expandedKeys.value.delete(id)
-  else expandedKeys.value.add(id)
+function toggleExpandRid(rid: string) {
+  if (expandedInstKeys.value.has(rid)) expandedInstKeys.value.delete(rid)
+  else expandedInstKeys.value.add(rid)
   visible.value = buildVisible(props.data || [])
   nextTick(() => {
     measureAndUpdate()
@@ -180,19 +182,22 @@ function onCheckClick(n: UnwrapRef<FlatNode>, ev: MouseEvent) {
 
 function buildVisible(list: T[]): FlatNode[] {
   const out: FlatNode[] = []
-  function walk(arr: T[], parent: T | null, level: number) {
+  function walk(arr: T[], parent: T | null, level: number, parentRid: string) {
     for (let i = 0; i < arr.length; i++) {
       const node: T = arr[i]!
       const id = getId(node)
       const children = getChildren(node)
       const isLeaf = children.length === 0
-      out.push({ id, node, parent, level, index: i, isLeaf })
-      if (!isLeaf && expandedKeys.value.has(id)) {
-        walk(children, node, level + 1)
+      const rid = parentRid ? `${parentRid}/${i}` : `${i}`
+      const flat: FlatNode = { rid, id, node, parent, level, index: i, isLeaf }
+      out.push(flat)
+      const expanded = expandedInstKeys.value.has(rid) || expandedBizKeys.value.has(id)
+      if (!isLeaf && expanded) {
+        walk(children, node, level + 1, rid)
       }
     }
   }
-  walk(list, null, 0)
+  walk(list, null, 0, '')
   if (props.filterNodeMethod && filterQuery.value != null) {
     const match = new Set<Key>()
     const anc = new Set<Key>()
@@ -216,7 +221,7 @@ const containerRef = ref<HTMLDivElement | null>(null)
 const scrollTop = ref(0)
 const viewportHeight = ref(0)
 const visible = ref<FlatNode[]>([])
-const sizes = reactive<Map<Key, number>>(new Map())
+const sizes = reactive<Map<string, number>>(new Map())
 function parseRowHeight(h: number | string | undefined) {
   if (typeof h === 'number') return h
   if (typeof h === 'string') {
@@ -231,7 +236,7 @@ const cumulative = computed<number[]>(() => {
   let sum = 0
   const arr: number[] = []
   for (const n of visible.value) {
-    const h = sizes.get(n.id) || defaultSize
+    const h = sizes.get(n.rid) || defaultSize
     sum += h
     arr.push(sum)
   }
@@ -274,7 +279,7 @@ function recomputeWindow() {
   const start = binarySearchOffset(scrollTop.value)
   startIndex.value = Math.max(0, start - 3)
   const startRow = visible.value[startIndex.value]
-  const rowSize = startRow ? (sizes.get(startRow.id) || defaultSize) : 0
+  const rowSize = startRow ? (sizes.get(startRow.rid) || defaultSize) : 0
   const yBase = cumulative.value[startIndex.value] ?? 0
   const y = yBase - rowSize
   topPadding.value = Math.max(0, y)
@@ -296,7 +301,7 @@ function recomputeWindow() {
   bottomPadding.value = Math.max(0, totalHeight.value - topPadding.value - ((cumulative.value[endIndex.value - 1] ?? 0) - topPadding.value))
 }
 
-watch([scrollTop, () => props.data, expandedKeys], () => {
+watch([scrollTop, () => props.data, expandedInstKeys, expandedBizKeys], () => {
   visible.value = buildVisible(props.data || [])
   nextTick(measureAndUpdate)
   recomputeWindow()
@@ -325,21 +330,21 @@ onUnmounted(() => {
   }
 })
 
-const rowRefs = reactive<Map<Key, HTMLElement>>(new Map())
+const rowRefs = reactive<Map<string, HTMLElement>>(new Map())
 
-function setRowRef(id: Key, el: HTMLElement | null) {
-  if (!el) rowRefs.delete(id)
-  else rowRefs.set(id, el)
+function setRowRef(rid: string, el: HTMLElement | null) {
+  if (!el) rowRefs.delete(rid)
+  else rowRefs.set(rid, el)
 }
 
 function measureAndUpdate() {
   let changed = false
   for (const n of visible.value.slice(startIndex.value, endIndex.value)) {
-    const el = rowRefs.get(n.id)
+    const el = rowRefs.get(n.rid)
     if (el) {
       const h = el.offsetHeight
-      if (!sizes.has(n.id) || sizes.get(n.id) !== h) {
-        sizes.set(n.id, h)
+      if (!sizes.has(n.rid) || sizes.get(n.rid) !== h) {
+        sizes.set(n.rid, h)
         changed = true
       }
     }
@@ -353,8 +358,8 @@ function onScroll() {
 }
 
 const dragging = ref(false)
-const dragId = ref<Key | null>(null)
-const dropTargetId = ref<Key | null>(null)
+const dragRid = ref<string | null>(null)
+const dropTargetRid = ref<string | null>(null)
 const dropType = ref<'prev' | 'next' | 'inner' | null>(null)
 const dragClientY = ref(0)
 const dragStarted = ref(false)
@@ -397,6 +402,11 @@ function findFlatById(id: Key | null): UnwrapRef<FlatNode> | null {
   for (const n of visible.value) if (n.id === id) return n
   return null
 }
+function findFlatByRid(rid: string | null): UnwrapRef<FlatNode> | null {
+  if (rid == null) return null
+  for (const n of visible.value) if (n.rid === rid) return n
+  return null
+}
 
 function pointerToIndex(clientY: number) {
   const rect = containerRef.value!.getBoundingClientRect()
@@ -410,7 +420,7 @@ function onRowMousedown(n: UnwrapRef<FlatNode>, ev: MouseEvent) {
   if (ev.button !== 0) return
   const can = props.allowDrag ? !!props.allowDrag(n.node as T) : true
   if (!can) return
-  dragId.value = n.id
+  dragRid.value = n.rid
   dragClientY.value = ev.clientY
   dragStartX.value = ev.clientX
   dragStartY.value = ev.clientY
@@ -421,7 +431,7 @@ function onRowMousedown(n: UnwrapRef<FlatNode>, ev: MouseEvent) {
 }
 
 function onMouseMove(ev: MouseEvent) {
-  if (dragId.value == null) return
+  if (dragRid.value == null) return
   if (!dragStarted.value) {
     const dx = Math.abs(ev.clientX - dragStartX.value)
     const dy = Math.abs(ev.clientY - dragStartY.value)
@@ -433,13 +443,13 @@ function onMouseMove(ev: MouseEvent) {
   dragClientY.value = ev.clientY
   const idx = pointerToIndex(ev.clientY)
   const target = visible.value[Math.min(Math.max(idx, 0), visible.value.length - 1)]
-  dropTargetId.value = target?.id ?? null
+  dropTargetRid.value = target?.rid ?? null
   if (!target) {
     dropType.value = null
     return
   }
   const cum = cumulative.value[idx] ?? 0
-  const h = sizes.get(target.id) ?? defaultSize
+  const h = sizes.get(target.rid) ?? defaultSize
   const top = cum - h
   const rect = containerRef.value!.getBoundingClientRect()
   const localY = ev.clientY - rect.top + scrollTop.value - top
@@ -449,7 +459,7 @@ function onMouseMove(ev: MouseEvent) {
   let t: 'prev' | 'next' | 'inner' = 'inner'
   if (r < ratio) t = 'prev'
   else if (r > 1 - ratio) t = 'next'
-  const dragFlat = findFlatById(dragId.value)
+  const dragFlat = findFlatByRid(dragRid.value)
   const allowed = props.allowDrop ? !!(dragFlat && props.allowDrop(dragFlat.node as T, target.node as T, t)) : true
   dropType.value = allowed ? t : null
   autoScrollDir.value = ev.clientY > rect.bottom ? 1 : ev.clientY < rect.top ? -1 : 0
@@ -504,7 +514,7 @@ function insertToTarget(dragNode: T, target: UnwrapRef<FlatNode>, type: 'prev' |
   if (type === 'inner') {
     if (!Array.isArray((target.node as any)[childrenKey.value])) (target.node as any)[childrenKey.value] = [] as T[]
       ; ((target.node as any)[childrenKey.value] as T[]).push(dragNode)
-    expandedKeys.value.add(target.id)
+    expandedInstKeys.value.add(target.rid)
     return
   }
   const parent = target.parent
@@ -523,19 +533,19 @@ function onMouseUp() {
   window.removeEventListener('mouseup', onMouseUp)
   cancelAutoScroll()
   if (!dragging.value) {
-    dragId.value = null
+    dragRid.value = null
     dropType.value = null
-    dropTargetId.value = null
+    dropTargetRid.value = null
     dragStarted.value = false
     return
   }
-  const dragFlat = findFlatById(dragId.value)
-  const targetFlat = findFlatById(dropTargetId.value)
+  const dragFlat = findFlatByRid(dragRid.value)
+  const targetFlat = findFlatByRid(dropTargetRid.value)
   const t = dropType.value
   dragging.value = false
   dragStarted.value = false
   dropType.value = null
-  dropTargetId.value = null
+  dropTargetRid.value = null
   if (!dragFlat || !targetFlat || !t) return
   if (props.allowDrop && !props.allowDrop(dragFlat.node as T, targetFlat.node as T, t)) return
   if (dragFlat.id === targetFlat.id) return
@@ -582,7 +592,7 @@ watch(
 watch(
   () => props.defaultExpandedKeys,
   (val) => {
-    expandedKeys.value = new Set(val || [])
+    expandedBizKeys.value = new Set(val || [])
     visible.value = buildVisible(props.data || [])
     nextTick(() => {
       measureAndUpdate()
@@ -596,7 +606,7 @@ watch(
   () => props.defaultExpandAll,
   (val) => {
     if (val) {
-      expandedKeys.value = new Set(collectAllKeys(props.data || []))
+      expandedBizKeys.value = new Set(collectAllKeys(props.data || []))
       visible.value = buildVisible(props.data || [])
       nextTick(() => {
         measureAndUpdate()
@@ -611,7 +621,7 @@ watch(
   () => props.data,
   () => {
     if (props.defaultExpandAll) {
-      expandedKeys.value = new Set(collectAllKeys(props.data || []))
+      expandedBizKeys.value = new Set(collectAllKeys(props.data || []))
     }
     visible.value = buildVisible(props.data || [])
     nextTick(() => {
@@ -627,7 +637,7 @@ watch(
 
 function expandAncestors(id: Key) {
   const path = findPathToId(id, props.data || []) || []
-  for (const anc of path) expandedKeys.value.add(getId(anc))
+  for (const anc of path) expandedBizKeys.value.add(getId(anc))
   visible.value = buildVisible(props.data || [])
 }
 
@@ -637,7 +647,8 @@ function scrollTo(id: Key | null) {
   nextTick(() => {
     const idx = visible.value.findIndex((f) => f.id === id)
     if (idx < 0 || !containerRef.value) return
-    const h = sizes.get(id) || defaultSize
+    const rid = visible.value[idx]?.rid
+    const h = (rid ? sizes.get(rid) : undefined) || defaultSize
     const top = (cumulative.value[idx] ?? 0) - h
     const viewH = containerRef.value.clientHeight
     const targetTop = Math.max(0, top - Math.max(0, (viewH - h) / 2))
@@ -645,7 +656,8 @@ function scrollTo(id: Key | null) {
     scrollTop.value = targetTop
     recomputeWindow()
     nextTick(() => {
-      const el = rowRefs.get(id)
+      const elRid = rid || null
+      const el = elRid ? rowRefs.get(elRid) : null
       if (!el || !containerRef.value) return
       const left = el.offsetLeft
       const w = el.offsetWidth
@@ -670,7 +682,7 @@ defineExpose({
   setChecked: (id: Key, checked: boolean) => setNodeChecked(id, checked),
   filter: (value: unknown) => {
     filterQuery.value = value
-    expandedKeys.value = new Set(collectAllKeys(props.data || []))
+    expandedBizKeys.value = new Set(collectAllKeys(props.data || []))
     visible.value = buildVisible(props.data || [])
     nextTick(() => {
       measureAndUpdate()
@@ -692,25 +704,25 @@ watch(activeId, (id) => {
     <template v-if="!isEmpty">
       <div :style="{ height: totalHeight + 'px', position: 'relative', minWidth: '100%', width: 'max-content' }">
         <div :style="{ height: topPadding + 'px' }"></div>
-        <div v-for="n in visible.slice(startIndex, endIndex)" :key="n.id" class="amazing-tree-row-wrapper">
+        <div v-for="n in visible.slice(startIndex, endIndex)" :key="n.rid" class="amazing-tree-row-wrapper">
           <div class="amazing-tree-row"
             :style="{ paddingLeft: (n.level * 16) + 'px', '--active-color': highlightColor }"
-            :class="{ 'is-target-inner': dragging && dropTargetId === n.id && dropType === 'inner', 'is-active': activeId === n.id }"
+            :class="{ 'is-target-inner': dragging && dropTargetRid === n.rid && dropType === 'inner', 'is-active': activeId === n.id }"
             @mousedown="onRowMousedown(n, $event)" @click="onRowClick(n, $event)"
-            @contextmenu.prevent="onRowContext(n, $event)" :ref="(el) => setRowRef(n.id, el as HTMLElement)">
+            @contextmenu.prevent="onRowContext(n, $event)" :ref="(el) => setRowRef(n.rid, el as HTMLElement)">
             <span class="amazing-tree-caret-box" :class="{ 'is-leaf': n.isLeaf }" @mousedown.stop
-              @click.stop="!n.isLeaf && toggleExpand(n.id)">
-              <span v-if="!n.isLeaf" class="amazing-tree-caret" :class="{ expanded: isExpanded(n.id) }"></span>
+              @click.stop="!n.isLeaf && toggleExpandRid(n.rid)">
+              <span v-if="!n.isLeaf" class="amazing-tree-caret" :class="{ expanded: isExpandedNode(n) }"></span>
             </span>
             <input v-if="showCheckbox" class="amazing-tree-checkbox" type="checkbox" :checked="isChecked(n.id)"
               @mousedown.stop :indeterminate="isIndeterminate(n.id)"
               :disabled="props.disabledChecked ? props.disabledChecked(n.node as T) : false"
               @click.stop="onCheckClick(n, $event)" />
-            <slot :node="n.node" :data="n.node" :level="n.level" :expanded="isExpanded(n.id)" :isLeaf="n.isLeaf">
+            <slot :node="n.node" :data="n.node" :level="n.level" :expanded="isExpandedNode(n)" :isLeaf="n.isLeaf">
               <span class="amazing-tree-label">{{ n.node[labelKey] }}</span>
             </slot>
           </div>
-          <div v-if="dragging && dropTargetId === n.id && (dropType === 'prev' || dropType === 'next')"
+          <div v-if="dragging && dropTargetRid === n.rid && (dropType === 'prev' || dropType === 'next')"
             class="amazing-tree-drop-line" :class="{ 'is-prev': dropType === 'prev', 'is-next': dropType === 'next' }">
           </div>
         </div>

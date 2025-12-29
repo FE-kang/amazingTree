@@ -46,7 +46,12 @@ const filterName = ref("")
 
 onMounted(async () => {
   try {
-    const resp = await fetch('/data.json')
+    // 示例数据：
+    // 1. data.json 是一份正确的树形结构数据
+    // 2. data3.json 是一份错误的树形结构数据，部分树节点是重复的，
+    //    这个数据是为了修复 树形数据中出现重复数据的时候，
+    //    导致的显示列表长度无限增长的渲染错误 调试用的
+    const resp = await fetch('/data3.json')
     const json = await resp.json()
     data.value = Array.isArray(json) ? json : []
     // setTimeout(() => {
