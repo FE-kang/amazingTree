@@ -62,27 +62,34 @@ function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner
 
 **Props**
 
-| 属性名                | 说明                        | 类型                                                           | 默认值                                                  | 是否可选 |
-| --------------------- | --------------------------- | -------------------------------------------------------------- | ------------------------------------------------------- | -------- |
-| `data`                | 树数据源                    | `T[]`                                                          | —                                                       | 否       |
-| `props`               | 字段映射                    | `{ value: string; label: string; children: string }`           | `{ value:'value', label:'label', children:'children' }` | 是       |
-| `allowDrag`           | 是否允许拖拽某节点          | `(node: T) => boolean`                                         | —                                                       | 是       |
-| `allowDrop`           | 是否允许目标位置            | `(drag: T, drop: T, type: 'prev'\|'next'\|'inner') => boolean` | —                                                       | 是       |
-| `height`              | 容器高度                    | `number \| string`                                             | `'100%'`                                                | 是       |
-| `highlightColor`      | 选中行高亮色                | `string`                                                       | `'#1e71ff'`                                             | 是       |
-| `backgroundColor`     | 背景色                      | `string`                                                       | `'#1d1d24'`                                             | 是       |
-| `textColor`           | 文本色                      | `string`                                                       | `'#c8d3de'`                                             | 是       |
-| `hoverColor`          | 悬浮色                      | `string`                                                       | `'#5d90e5'`                                             | 是       |
-| `currentNodeKey`      | 当前行的 `value`            | `Key`                                                          | —                                                       | 是       |
-| `defaultExpandedKeys` | 默认展开的节点 `value` 列表 | `Key[]`                                                        | —                                                       | 是       |
-| `defaultExpandAll`    | 是否默认全部展开            | `boolean`                                                      | —                                                       | 是       |
-| `draggable`           | 是否允许拖拽                | `boolean`                                                      | `false`                                                 | 是       |
-| `emptyText`           | 空状态文案                  | `string`                                                       | `'暂无数据'`                                            | 是       |
-| `showCheckbox`        | 是否显示复选框              | `boolean`                                                      | `false`                                                 | 是       |
-| `checkStrictly`       | 选择严格模式，父子不联动    | `boolean`                                                      | `false`                                                 | 是       |
-| `defaultCheckedKeys`  | 默认勾选的 `value` 列表     | `Key[]`                                                        | `[]`                                                    | 是       |
-| `disabledChecked`     | 是否禁用当前节点复选框      | `(node: T) => boolean`                                         | —                                                       | 是       |
-| `filterNodeMethod`    | 过滤方法（返回 false 隐藏） | `(value: unknown, node: T) => boolean`                         | —                                                       | 是       |
+> 类型别名：Key = `string | number`
+
+| 属性名                | 说明                                | 类型                                                           | 默认值                                                  | 是否可选 |
+| --------------------- | ----------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------- | -------- |
+| `data`                | 树数据源                            | `T[]`                                                          | —                                                       | 否       |
+| `props`               | 字段映射                            | `{ value: string; label: string; children: string }`           | `{ value:'value', label:'label', children:'children' }` | 是       |
+| `allowDrag`           | 是否允许拖拽某节点                  | `(node: T) => boolean`                                         | —                                                       | 是       |
+| `allowDrop`           | 是否允许目标位置                    | `(drag: T, drop: T, type: 'prev'\|'next'\|'inner') => boolean` | —                                                       | 是       |
+| `height`              | 容器高度（未传时样式回退为`100%`）  | `number \| string`                                             | —                                                       | 是       |
+| `rowHeight`           | 行高（用于虚拟滚动估计）            | `number \| string`                                             | `32`                                                    | 是       |
+| `dropLineColor`       | 拖拽前后置指示线颜色                | `string`                                                       | `'#ffd400'`                                             | 是       |
+| `innerDashColor`      | 拖拽内部放置虚线颜色                | `string`                                                       | `'#ffd400'`                                             | 是       |
+| `siblingZoneRatio`    | 行内前后置判定区域比例（0.05–0.49） | `number`                                                       | `0.35`                                                  | 是       |
+| `dragStartThreshold`  | 触发拖拽的最小鼠标位移阈值          | `number`                                                       | `4`                                                     | 是       |
+| `highlightColor`      | 选中行高亮色                        | `string`                                                       | `'#1e71ff'`                                             | 是       |
+| `backgroundColor`     | 背景色                              | `string`                                                       | `'#1d1d24'`                                             | 是       |
+| `textColor`           | 文本色                              | `string`                                                       | `'#c8d3de'`                                             | 是       |
+| `hoverColor`          | 悬浮色                              | `string`                                                       | `'#5d90e5'`                                             | 是       |
+| `currentNodeKey`      | 当前行的 `value`                    | `Key`                                                          | —                                                       | 是       |
+| `defaultExpandedKeys` | 默认展开的节点 `value` 列表         | `Key[]`                                                        | —                                                       | 是       |
+| `defaultExpandAll`    | 是否默认全部展开                    | `boolean`                                                      | `false`                                                 | 是       |
+| `draggable`           | 是否允许拖拽                        | `boolean`                                                      | `false`                                                 | 是       |
+| `emptyText`           | 空状态文案                          | `string`                                                       | `'暂无数据'`                                            | 是       |
+| `showCheckbox`        | 是否显示复选框                      | `boolean`                                                      | `false`                                                 | 是       |
+| `checkStrictly`       | 选择严格模式（父子不联动）          | `boolean`                                                      | `false`                                                 | 是       |
+| `defaultCheckedKeys`  | 默认勾选的 `value` 列表             | `Key[]`                                                        | `[]`                                                    | 是       |
+| `disabledChecked`     | 是否禁用当前节点复选框              | `(node: T) => boolean`                                         | —                                                       | 是       |
+| `filterNodeMethod`    | 过滤方法（返回 false 隐藏该节点）   | `(value: unknown, node: T) => boolean`                         | —                                                       | 是       |
 
 **Events**
 
