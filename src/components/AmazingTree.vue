@@ -96,8 +96,16 @@ function isExpandedNode(n: UnwrapRef<FlatNode>) {
   return expandedInstKeys.value.has(n.rid) || expandedBizKeys.value.has(n.id)
 }
 function toggleExpandRid(rid: string) {
-  if (expandedInstKeys.value.has(rid)) expandedInstKeys.value.delete(rid)
-  else expandedInstKeys.value.add(rid)
+  const flat = findFlatByRid(rid)
+  if (!flat) return
+  const bizId = flat.id
+  const isExpanded = expandedInstKeys.value.has(rid) || expandedBizKeys.value.has(bizId)
+  if (isExpanded) {
+    expandedInstKeys.value.delete(rid)
+    expandedBizKeys.value.delete(bizId)
+  } else {
+    expandedInstKeys.value.add(rid)
+  }
   visible.value = buildVisible(props.data || [])
   nextTick(() => {
     measureAndUpdate()
