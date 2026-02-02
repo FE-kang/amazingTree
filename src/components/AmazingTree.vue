@@ -69,6 +69,7 @@ const emit = defineEmits<{
   (e: 'node-drop', dragging: T, target: T, type: 'prev' | 'next' | 'inner'): void
   (e: 'current-change', node: T): void
   (e: 'check-change', node: T, checked: boolean): void
+  (e: 'selection-change', keys: Key[], nodes: T[]): void
 }>()
 
 const valueKey = computed<string>(() => props.props!.value || 'value')
@@ -374,6 +375,8 @@ const dragStarted = ref(false)
 const dragStartX = ref(0)
 const dragStartY = ref(0)
 const activeId = ref<Key | null>(null)
+const selectedKeys = ref<Set<Key>>(new Set())
+const anchorIndex = ref<number | null>(null)
 const autoScrollDir = ref<-1 | 0 | 1>(0)
 let autoScrollRaf: number | null = null
 
@@ -577,8 +580,33 @@ function onMouseUp() {
 }
 
 function onRowClick(n: UnwrapRef<FlatNode>, ev: MouseEvent) {
+  const idx = visible.value.findIndex((f) => f.id === n.id)
+  const ctrl = ev.ctrlKey || ev.metaKey
+  const shift = ev.shiftKey
+  if (shift && anchorIndex.value != null) {
+    const start = Math.min(anchorIndex.value, idx)
+    const end = Math.max(anchorIndex.value, idx)
+    const base = ctrl ? new Set(selectedKeys.value) : new Set<Key>()
+    for (let i = start; i <= end; i++) {
+      const id = visible.value[i]?.id
+      if (id != null) base.add(id)
+    }
+    selectedKeys.value = base
+  } else if (ctrl) {
+    const next = new Set(selectedKeys.value)
+    if (next.has(n.id)) next.delete(n.id)
+    else next.add(n.id)
+    selectedKeys.value = next
+    anchorIndex.value = idx
+  } else {
+    selectedKeys.value = new Set([n.id])
+    anchorIndex.value = idx
+  }
   activeId.value = n.id
   emit('node-click', n.node as T, ev)
+  const selNodes: T[] = []
+  for (const f of visible.value) if (selectedKeys.value.has(f.id)) selNodes.push(f.node as T)
+  emit('selection-change', Array.from(selectedKeys.value), selNodes)
 }
 function onRowContext(n: UnwrapRef<FlatNode>, ev: MouseEvent) {
   activeId.value = n.id
@@ -593,6 +621,8 @@ watch(
   () => props.currentNodeKey,
   (val) => {
     activeId.value = val ?? null
+    if (val != null) selectedKeys.value = new Set([val])
+    else selectedKeys.value = new Set()
   },
   { immediate: true },
 )
@@ -639,6 +669,7 @@ watch(
     const all = new Set(collectAllKeys(props.data || []))
     checkedKeys.value = new Set([...checkedKeys.value].filter((k) => all.has(k)))
     halfCheckedKeys.value = new Set([...halfCheckedKeys.value].filter((k) => all.has(k)))
+    selectedKeys.value = new Set([...selectedKeys.value].filter((k) => all.has(k)))
   },
   { deep: true },
 )
@@ -688,6 +719,17 @@ defineExpose({
   getCheckedKeys: () => Array.from(checkedKeys.value),
   setCheckedKeys,
   setChecked: (id: Key, checked: boolean) => setNodeChecked(id, checked),
+  getSelectedKeys: () => Array.from(selectedKeys.value),
+  setSelectedKeys: (keys: Key[]) => {
+    const all = new Set(collectAllKeys(props.data || []))
+    selectedKeys.value = new Set((keys || []).filter((k) => all.has(k)))
+    const any = visible.value.find((f) => selectedKeys.value.has(f.id))
+    activeId.value = any?.id ?? null
+    if (activeId.value != null) scrollTo(activeId.value)
+  },
+  clearSelection: () => {
+    selectedKeys.value = new Set()
+  },
   filter: (value: unknown) => {
     const isCleared = value == null || (typeof value === 'string' && value.trim() === '')
     if (!isCleared && props.filterNodeMethod) {
@@ -727,7 +769,7 @@ watch(activeId, (id) => {
         <div v-for="n in visible.slice(startIndex, endIndex)" :key="n.rid" class="amazing-tree-row-wrapper">
           <div class="amazing-tree-row"
             :style="{ paddingLeft: (n.level * 16) + 'px', '--active-color': highlightColor }"
-            :class="{ 'is-target-inner': dragging && dropTargetRid === n.rid && dropType === 'inner', 'is-active': activeId === n.id }"
+            :class="{ 'is-target-inner': dragging && dropTargetRid === n.rid && dropType === 'inner', 'is-active': selectedKeys.has(n.id) }"
             @mousedown="onRowMousedown(n, $event)" @click="onRowClick(n, $event)"
             @contextmenu.prevent="onRowContext(n, $event)" :ref="(el) => setRowRef(n.rid, el as HTMLElement)">
             <span class="amazing-tree-caret-box" :class="{ 'is-leaf': n.isLeaf }" @mousedown.stop

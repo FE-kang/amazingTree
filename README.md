@@ -8,6 +8,7 @@
 
 - 虚拟滚动渲染，平滑滚动与自动测量行高（20w节点无压力）
 - 可选中（复选框），支持父子联动或严格模式
+- 多行选择高亮（行级选择），支持 Ctrl/Cmd 切换与 Shift 区间
 - 可筛选，可快速定位节点
 - 拖拽换位与嵌套，提供前置、后置、内部三种放置方式
 - 支持自定义内容（节点插槽和空数据占位插槽）
@@ -100,6 +101,7 @@ function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner
 | `node-drop`        | 拖拽放置                            | `(drag: T, target: T, type: 'prev' \| 'next' \| 'inner')` |
 | `current-change`   | 当前行变化（配合 `currentNodeKey`） | `(node: T)`                                               |
 | `check-change`     | 勾选框点击时触发；禁用状态不触发    | `(node: T, checked: boolean)`                             |
+| `selection-change` | 行级多选集合变化                    | `(keys: Key[], nodes: T[])`                               |
 
 **Slots**
 
@@ -110,12 +112,57 @@ function onDrop(drag: NodeItem, target: NodeItem, type: 'prev' | 'next' | 'inner
 
 **Exposes**
 
-| 方法名           | 说明                              | 返回类型                              |
-| ---------------- | --------------------------------- | ------------------------------------- |
-| `getCurrentKey`  | 获取当前行 `value`                | `Key \| null`                         |
-| `setCurrentKey`  | 设置当前行并滚动可见              | `(id: Key \| null) => void`           |
-| `scrollTo`       | 滚动到指定行（自动展开祖先）      | `(id: Key \| null) => void`           |
-| `getCheckedKeys` | 获取当前勾选集合                  | `Key[]`                               |
-| `setCheckedKeys` | 批量设置勾选（应用联动/严格逻辑） | `(keys: Key[]) => void`               |
-| `setChecked`     | 设置单个节点勾选状态              | `(id: Key, checked: boolean) => void` |
-| `filter`         | 触发过滤，参数作为回调第 1 个参数 | `(value: unknown) => void`            |
+| 方法名            | 说明                                           | 返回类型                              |
+| ----------------- | ---------------------------------------------- | ------------------------------------- |
+| `getCurrentKey`   | 获取当前行 `value`                             | `Key \| null`                         |
+| `setCurrentKey`   | 设置当前行并滚动可见                           | `(id: Key \| null) => void`           |
+| `scrollTo`        | 滚动到指定行（自动展开祖先）                   | `(id: Key \| null) => void`           |
+| `getCheckedKeys`  | 获取当前勾选集合                               | `Key[]`                               |
+| `setCheckedKeys`  | 批量设置勾选（应用联动/严格逻辑）              | `(keys: Key[]) => void`               |
+| `setChecked`      | 设置单个节点勾选状态                           | `(id: Key, checked: boolean) => void` |
+| `filter`          | 触发过滤，参数作为回调第 1 个参数              | `(value: unknown) => void`            |
+| `getSelectedKeys` | 获取当前行级多选集合                           | `Key[]`                               |
+| `setSelectedKeys` | 设置行级多选集合（自动过滤无效键并滚动到焦点） | `(keys: Key[]) => void`               |
+| `clearSelection`  | 清空行级多选集合                               | `() => void`                          |
+
+**行级多选（高亮）**
+
+- 交互规则
+  - 单击：选中当前行（清空其他）
+  - Ctrl/Cmd+单击：切换当前行选中状态（增删）
+  - Shift+单击：与上一次点击形成连续区间选择；可与 Ctrl 组合做并集
+- 事件：`selection-change(keys, nodes)` 在每次选择变化时触发
+- API：`getSelectedKeys` / `setSelectedKeys` / `clearSelection`
+- 样式：多选行使用高亮色（`highlightColor`），与复选框勾选互不影响
+
+```vue
+<template>
+  <AmazingTree
+    ref="tree"
+    :data="data"
+    :props="{ value: 'uuid', label: 'name', children: 'children' }"
+    @selection-change="onSelChange"
+  />
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const tree = ref<any>()
+function onSelChange(keys: (string | number)[], nodes: any[]) {
+  // 监听多选变化
+}
+
+function readSelection() {
+  const keys = tree.value.getSelectedKeys()
+}
+
+function setSelection(keys: (string | number)[]) {
+  tree.value.setSelectedKeys(keys)
+}
+
+function clearSelection() {
+  tree.value.clearSelection()
+}
+</script>
+```

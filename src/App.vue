@@ -51,7 +51,7 @@ onMounted(async () => {
     // 2. data3.json 是一份错误的树形结构数据，部分树节点是重复的，
     //    这个数据是为了修复 树形数据中出现重复数据的时候，
     //    导致的显示列表长度无限增长的渲染错误 调试用的
-    const resp = await fetch('/data3.json')
+    const resp = await fetch('/data.json')
     const json = await resp.json()
     data.value = Array.isArray(json) ? json : []
     // setTimeout(() => {
@@ -138,6 +138,11 @@ const filterNode = () => {
 const filterMethod = (value: any, node: NodeItem) => {
   return node.name.includes(value)
 }
+
+const handleSelectionChange = (keys: NodeKeyType[], nodes: NodeItem[]) => {
+  console.log("多选选择变化", keys, nodes);
+  console.log("多选选择组件内状态", treeRef.value?.getSelectedKeys())
+}
 </script>
 
 <template>
@@ -153,7 +158,8 @@ const filterMethod = (value: any, node: NodeItem) => {
         :default-expanded-keys="['e3eeb6b1-7e72-432f-b342-77d32fb24fe1']" :default-expand-all="false" :draggable="true"
         :show-checkbox="false" :check-strictly="true" :disabled-checked="() => true" :filter-node-method="filterMethod"
         empty-text="没有余粮" height="100%" @node-click="onClick" @node-contextmenu="onContext" @node-drop="onDrop"
-        dropLineColor="#ff0000" innerDashColor="#ff0000" @current-change="handleChange" ref="treeRef">
+        dropLineColor="#ff0000" innerDashColor="#ff0000" @current-change="handleChange" ref="treeRef"
+        @selection-change="handleSelectionChange">
         <template #default="{ node }">
           <div style="display: flex; align-items: center; gap: 8px;">
             <div class="tree-node-icon">
