@@ -143,6 +143,10 @@ const handleSelectionChange = (keys: NodeKeyType[], nodes: NodeItem[]) => {
   console.log("多选选择变化", keys, nodes);
   console.log("多选选择组件内状态", treeRef.value?.getSelectedKeys())
 }
+
+const setMultiSelKeys = () => {
+  treeRef.value?.setSelectedKeys(["21286b73-2ae4-4e9f-b345-9100a6d124c1", "cc62b5b4-c887-44d9-9a12-06ef58049365"])
+}
 </script>
 
 <template>
@@ -196,6 +200,9 @@ const handleSelectionChange = (keys: NodeKeyType[], nodes: NodeItem[]) => {
     </div>
     <div class="form-item">
       <input type="text" v-model="sctNodeKey" style="flex: 1;"><button @click="scrollToNode">滚动到节点：</button>
+    </div>
+    <div class="form-item">
+      <button @click="setMultiSelKeys">设置多选回显</button>
     </div>
   </div>
 </template>
